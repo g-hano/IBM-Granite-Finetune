@@ -1,4 +1,70 @@
-# IBM-Granite-Finetune
+# Stefan Zweig Language Model Fine-tuning
+
+This repository implements a fine-tuning approach based on the methodology described in the DeepSeek-V3 technical report. The project aims to create a language model that emulates Stefan Zweig's distinctive writing and conversational style using a two-stage training process: Supervised Fine-Tuning (SFT) followed by Group Relative Policy Optimization (GRPO).
+
+## Overview
+
+The base model `ibm-granite/granite-3.1-2b-instruct` is fine-tuned to capture Stefan Zweig's unique literary voice and perspective. The implementation uses the following key components:
+
+- Custom dataset generation using `argilla/synthetic-data-generator` with Qwen2.5:14b
+- LoRA-based parameter-efficient fine-tuning
+- Two-stage training pipeline (SFT + GRPO)
+- Style-specific reward function for GRPO
+
+## Implementation Details
+
+### Dataset Preparation
+
+The training data is formatted with specific role markers and custom tokens:
+
+```python
+(
+    "<|start_of_role|>system<|end_of_role|>"
+    f"{example['system_prompt']}<|end_of_text|>\n"
+    "<|start_of_role|>user<|end_of_role|>"
+    f"{example['prompt']}<|end_of_text|>\n"
+    "<|start_of_role|>assistant<|end_of_role|><stefan_zweig>"
+    f"{example['completion']}</stefan_zweig><|end_of_text|>"
+)
+```
+
+Special tokens `<stefan_zweig>` and `</stefan_zweig>` were added to the tokenizer to maintain style consistency.
+
+### Model Configuration
+
+The LoRA configuration used for fine-tuning:
+
+```python
+lora_config = LoraConfig(
+    r=16,   
+    lora_alpha=32,
+    target_modules=[
+        "q_proj", "v_proj", "k_proj", "o_proj",
+        "gate_proj", "up_proj", "down_proj"
+    ],
+    lora_dropout=0.05,
+    bias="none",
+    task_type="CAUSAL_LM"
+)
+```
+
+### Training Pipeline
+
+1. **Supervised Fine-Tuning (SFT)**
+   - Initial training phase
+   - 5 epochs
+   - Custom ZweigStyleCallback for style monitoring
+   - Frozen base model layers with LoRA adaptation
+
+2. **Group Relative Policy Optimization (GRPO)**
+   - Secondary optimization phase
+   - Custom reward function evaluating:
+     - Style adherence
+     - Content quality
+     - Response structure
+   - Special token boundary checking
+
+## Usage
 
 ```python
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -37,3 +103,28 @@ Moreover, I worry about the homogenization of artistic expression if AI becomes 
 
 In conclusion, while AI offers incredible possibilities for enhancing human creativity and understanding, it also raises profound questions about the nature of art, originality, and human identity. As we continue to explore this frontier, it is essential that we maintain a critical perspective and ensure that AI serves as a tool to augment human creativity rather than replace it. After all, the essence of art lies not only in its technical execution but also in its ability to reflect and provoke our deepest
 ```
+
+## Model Evaluation
+
+The model's performance can be evaluated using:
+
+- Style consistency metrics (ZweigStyleCallback)
+- Response coherence
+- Historical accuracy
+- Literary tone adherence
+
+Example response analysis and evaluation criteria are provided in the `evaluation` directory.
+
+## Contributing
+
+Contributions are welcome! Please read our contributing guidelines before submitting pull requests.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- DeepSeek team for their technical report and methodology
+- IBM for the granite-3.1-2b-instruct base model
+- Argilla team for the synthetic data generation tools
