@@ -11,6 +11,7 @@ The base model `ibm-granite/granite-3.1-2b-instruct` is fine-tuned to capture St
 - Two-stage training pipeline (SFT + GRPO)
 - Style-specific reward function for GRPO
 
+You can find the synthetic dataset I created from [here](https://huggingface.co/datasets/Chan-Y/Stefan-Zweig-Chat), and trained model from [here](https://huggingface.co/Chan-Y/zweig_granite_model_2501)
 ## Implementation Details
 
 ### Dataset Preparation
@@ -55,6 +56,8 @@ lora_config = LoraConfig(
    - 5 epochs
    - Custom ZweigStyleCallback for style monitoring
    - Frozen base model layers with LoRA adaptation
+
+![train-loss](chart/train-loss.png)
 
 2. **Group Relative Policy Optimization (GRPO)**
    - Secondary optimization phase
